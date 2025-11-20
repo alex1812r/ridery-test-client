@@ -21,7 +21,7 @@
           </v-card-title>
           <v-card-text>
             <v-row align="start">
-              <v-col cols="12" md="5">
+              <v-col cols="12" md="4">
                 <v-text-field
                   v-model="filters.search"
                   label="Buscar"
@@ -57,7 +57,18 @@
                   @update:model-value="handleYearFilterChange"
                 />
               </v-col>
-              <v-col cols="12" md="3" class="d-flex align-end">
+              <v-col cols="12" md="2">
+                <v-select
+                  v-model="filters.status"
+                  :items="statusOptions"
+                  label="Estado"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  @update:model-value="handleStatusFilterChange"
+                />
+              </v-col>
+              <v-col cols="12" md="2" class="d-flex align-end">
                 <v-btn
                   color="secondary"
                   variant="outlined"
@@ -66,7 +77,7 @@
                   density="compact"
                   height="40"
                 >
-                  Limpiar Filtros
+                  Limpiar
                 </v-btn>
               </v-col>
             </v-row>
@@ -93,6 +104,16 @@
 
           <template v-slot:item.model="{ item }">
             {{ item.model?.name || item.model || '-' }}
+          </template>
+
+          <template v-slot:item.status="{ item }">
+            <v-chip
+              :color="getStatusColor(item.status)"
+              size="small"
+              variant="flat"
+            >
+              {{ getStatusTitle(item.status) }}
+            </v-chip>
           </template>
 
           <template v-slot:item.actions="{ item }">
@@ -195,7 +216,8 @@ const sortOrder = ref('asc');
 const filters = ref({
   search: '',
   yearFrom: null, // Número del año
-  yearTo: null // Número del año
+  yearTo: null, // Número del año
+  status: null // Estado del vehículo
 });
 
 const headers = [
@@ -203,6 +225,7 @@ const headers = [
   { title: 'Marca', key: 'mark', sortable: true },
   { title: 'Modelo', key: 'model', sortable: true },
   { title: 'Año de Fabricación', key: 'year', sortable: true },
+  { title: 'Estado', key: 'status', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'end' }
 ];
 
@@ -228,12 +251,36 @@ const yearOptions = (() => {
   return years;
 })();
 
+// Opciones de status del vehículo
+const statusOptions = [
+  { title: 'Disponible', value: 'available' },
+  { title: 'En Mantenimiento', value: 'maintenance' },
+  { title: 'En Servicio', value: 'service' }
+];
+
+// Función para obtener el color del status (igual que en VehicleDialog)
+const getStatusColor = (status) => {
+  const colors = {
+    available: 'success',
+    maintenance: 'error',
+    service: 'warning'
+  };
+  return colors[status] || 'grey';
+};
+
+// Función para obtener el título del status en español
+const getStatusTitle = (status) => {
+  const statusOption = statusOptions.find(opt => opt.value === status);
+  return statusOption ? statusOption.title : status || '-';
+};
+
 const loadVehicles = async () => {
   // Preparar filtros para enviar (solo los que tienen valor)
   const filtersToSend = {
     search: filters.value.search || undefined,
     yearFrom: filters.value.yearFrom || undefined,
-    yearTo: filters.value.yearTo || undefined
+    yearTo: filters.value.yearTo || undefined,
+    status: filters.value.status || undefined
   };
 
   // Asegurar que siempre se envíen los parámetros de ordenamiento
@@ -270,6 +317,13 @@ const handleYearFilterChange = () => {
   loadVehicles();
 };
 
+// Handler para el filtro de status (sin debounce, se ejecuta inmediatamente)
+const handleStatusFilterChange = () => {
+  // Resetear a la primera página cuando cambia el filtro
+  currentPage.value = 1;
+  loadVehicles();
+};
+
 const clearFilters = () => {
   // Limpiar el timer de debounce si existe
   if (searchDebounceTimer) {
@@ -280,7 +334,8 @@ const clearFilters = () => {
   filters.value = {
     search: '',
     yearFrom: null,
-    yearTo: null
+    yearTo: null,
+    status: null
   };
   currentPage.value = 1;
   loadVehicles();

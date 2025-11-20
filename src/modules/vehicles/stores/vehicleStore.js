@@ -32,6 +32,9 @@ export const useVehicleStore = defineStore('vehicle', {
         if (filters.yearTo) {
           params.yearTo = filters.yearTo;
         }
+        if (filters.status) {
+          params.status = filters.status;
+        }
         
         const response = await api.get('/vehicles', { params });
 
